@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Glass Camera App UI</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(to right, #0f0c29, #302b63, #24243e);
+      font-family: 'Segoe UI', sans-serif;
+      overflow: hidden;
+    }
+
+    .camera-viewfinder {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      filter: brightness(0.7);
+      z-index: 1;
+      transform: scaleX(-1);
+    }
+
+    .glass-panel {
+      position: absolute;
+      backdrop-filter: blur(20px);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+      color: white;
+      padding: 20px;
+      z-index: 2;
+    }
+
+    .capture-button, .record-button, .switch-button, .ai-enhance-button {
+      position: absolute;
+      bottom: 40px;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid #ffffff33;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      cursor: pointer;
+      font-size: 30px;
+      color: white;
+    }
+
+    .capture-button {
+      left: 20%;
+      transform: translateX(-50%);
+      box-shadow: 0 0 20px #00f7ff;
+    }
+
+    .record-button {
+      left: 40%;
+      transform: translateX(-50%);
+      background: rgba(255, 0, 0, 0.2);
+      box-shadow: 0 0 20px #ff0000;
+    }
+
+    .switch-button {
+      left: 60%;
+      transform: translateX(-50%);
+      background: rgba(0, 255, 100, 0.2);
+      box-shadow: 0 0 20px #00ff88;
+    }
+
+    .ai-enhance-button {
+      left: 80%;
+      transform: translateX(-50%);
+      background: rgba(0, 140, 255, 0.2);
+      box-shadow: 0 0 20px #009dff;
+    }
+
+    .toggle-filters-button {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      font-size: 24px;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 3;
+    }
+
+    .filters-panel {
+      position: absolute;
+      top: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 3;
+      display: none;
+      flex-wrap: wrap;
+      gap: 10px;
+      max-width: 90vw;
+      justify-content: center;
+    }
+
+    .filter-button {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      font-size: 12px;
+    }
+
+    .filter-button:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .flash-effect {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: white;
+      z-index: 999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.05s ease;
+    }
+  </style>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+  <video id="webcam" autoplay muted playsinline class="camera-viewfinder"></video>
+
+  <div class="capture-button" title="Photo" onclick="takePhoto()">
+    <i class="bi bi-camera"></i>
+  </div>
+  <div class="record-button" title="Start/Stop Recording" onclick="toggleRecording()">
+    <i class="bi bi-record-circle"></i>
+  </div>
+  <div class="switch-button" title="Switch Camera" onclick="switchCamera()">
+    <i class="bi bi-arrow-repeat"></i>
+  </div>
+  <div class="ai-enhance-button" title="AI Enhance" onclick="aiEnhance()">
+    <i class="bi bi-stars"></i>
+  </div>
+
+  <div class="toggle-filters-button" onclick="toggleFilters()">
+    <i class="bi bi-sliders"></i>
+  </div>
+
+  <div class="filters-panel" id="filtersPanel">
+    <button class="filter-button" onclick="setFilter('none')">Normal</button>
+    <button class="filter-button" onclick="setFilter('grayscale(100%)')">Grayscale</button>
+    <button class="filter-button" onclick="setFilter('sepia(100%)')">Sepia</button>
+    <button class="filter-button" onclick="setFilter('invert(100%)')">Invert</button>
+    <button class="filter-button" onclick="setFilter('blur(3px)')">Blur</button>
+    <button class="filter-button" onclick="setFilter('contrast(200%)')">High Contrast</button>
+    <button class="filter-button" onclick="setFilter('brightness(1.5)')">Bright</button>
+    <button class="filter-button" onclick="setFilter('contrast(150%) brightness(1.4)')">Night Mode</button>
+    <button class="filter-button" onclick="setFilter('contrast(140%) brightness(1.2) saturate(1.2)')">HDR Boost</button>
+    <button class="filter-button" onclick="setFilter('blur(2px) brightness(1.3)')">Depth Portrait</button>
+    <button class="filter-button" onclick="setFilter('hue-rotate(20deg) contrast(130%) saturate(1.4)')">Cinematic</button>
+  </div>
+
+  <div class="flash-effect" id="flash"></div>
+  <canvas id="canvas" style="display:none;"></canvas>
+
+  <script>
+    let video = document.getElementById('webcam');
+    let mediaRecorder;
+    let recordedChunks = [];
+    let currentFacingMode = 'user';
+
+    function startCamera() {
+      const constraints = {
+        video: {
+          facingMode: { exact: currentFacingMode },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 60 }
+        },
+        audio: true
+      };
+      navigator.mediaDevices.getUserMedia(constraints)
+        .then(stream => {
+          video.srcObject = stream;
+        })
+        .catch(err => {
+          alert('Error accessing webcam: ' + err);
+        });
+    }
+
+    function switchCamera() {
+      currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+      if (video.srcObject) {
+        video.srcObject.getTracks().forEach(track => track.stop());
+      }
+      startCamera();
+    }
+
+    function toggleRecording() {
+      if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+        recordedChunks = [];
+        mediaRecorder = new MediaRecorder(video.srcObject);
+
+        mediaRecorder.ondataavailable = e => {
+          if (e.data.size > 0) recordedChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(recordedChunks, { type: 'video/webm' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'recorded-video.webm';
+          a.click();
+        };
+
+        mediaRecorder.start();
+        alert('Recording started');
+      } else {
+        mediaRecorder.stop();
+        alert('Recording stopped & saved');
+      }
+    }
+
+    function takePhoto() {
+      const canvas = document.getElementById('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = 'photo.png';
+      link.click();
+
+      const flash = document.getElementById('flash');
+      flash.style.opacity = 1;
+      setTimeout(() => flash.style.opacity = 0, 80);
+    }
+
+    function setFilter(filter) {
+      video.style.filter = filter;
+    }
+
+    function toggleFilters() {
+      const panel = document.getElementById('filtersPanel');
+      panel.style.display = panel.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    function aiEnhance() {
+      const canvas = document.getElementById('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(blob => {
+        const formData = new FormData();
+        formData.append('image', blob, 'photo.png');
+        window.open('https://krea.ai/', '_blank');
+      }, 'image/png');
+    }
+
+    startCamera();
+  </script>
+</body>
+</html>
